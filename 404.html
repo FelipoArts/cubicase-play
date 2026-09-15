@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Convite — Cubicase</title>
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0c;
+      --bg-card: #17171b;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      --text-primary: #f5f5f7;
+      --text-secondary: #a3a3ac;
+      --accent: #ff4433;
+      --accent-hover: #ff5a4b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 24px;
+    }
+    .card {
+      max-width: 440px;
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px 32px;
+      text-align: center;
+      box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
+    }
+    h1 {
+      font-family: "Space Grotesk", "Inter", sans-serif;
+      font-size: 22px;
+      margin: 0 0 10px;
+    }
+    p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0 0 28px;
+    }
+    .btn {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14.5px;
+      padding: 15px 30px;
+      border-radius: 14px;
+      box-shadow: 0 8px 24px -8px rgba(255, 68, 51, 0.55);
+      transition: background 0.15s;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn-ghost {
+      display: inline-block;
+      margin-top: 16px;
+      color: var(--text-secondary);
+      text-decoration: underline;
+      font-size: 13px;
+    }
+    #fallback { opacity: 0; transition: opacity 0.3s; }
+    .spinner {
+      width: 22px; height: 22px; margin: 0 auto 20px;
+      border: 3px solid var(--border-strong);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="spinner"></div>
+    <h1>Procurando o convite&hellip;</h1>
+    <p>Só um instante.</p>
+  </div>
+
+  <script>
+    // ============================================================
+    // Página de convite (play.cubicase.net/<slug>) — GitHub Pages
+    // ============================================================
+    // Mesma ideia de docs/entrar/ (repo principal do Cubicase): uma ponte
+    // hospedada em https:// que entrega o usuário de volta pro app via deep
+    // link (cubicase://join/<shortCode>, que o Cubicase já sabe escutar —
+    // ver src/lib/joinDeepLink.ts no repo principal).
+    //
+    // Fica num site/repo GitHub Pages separado do cubicase.net principal
+    // porque cada site do GitHub Pages só aceita UM domínio customizado, e
+    // "play.cubicase.net" é um subdomínio à parte. Serve tanto como
+    // index.html quanto como 404.html (ver README deste repo) — GitHub Pages
+    // devolve 404.html pra qualquer caminho que não seja um arquivo real, e
+    // é exatamente isso que "/<slug>" é aqui: não existe arquivo nenhum com
+    // esse nome, então cai neste mesmo conteúdo, e o slug vem de
+    // location.pathname.
+    //
+    // A API Central (Cloudflare Worker) é quem resolve slug -> shortCode —
+    // este site não guarda nada, só pergunta e redireciona.
+    const API_BASE = "https://cubeforge-api.cubeforge.workers.dev";
+
+    const card = document.getElementById("card");
+
+    function render(html) {
+      card.innerHTML = html;
+    }
+
+    function renderError(title, message) {
+      render(
+        "<h1>" + title + "</h1>" +
+        "<p>" + message + "</p>" +
+        '<a class="btn" href="https://cubicase.net/">Conhecer o Cubicase</a>'
+      );
+    }
+
+    function renderInvite(name, shortCode) {
+      const deepLink = "cubicase://join/" + encodeURIComponent(shortCode);
+      render(
+        "<h1>Você foi convidado pra jogar" + (name ? " em " + escapeHtml(name) : "") + "</h1>" +
+        "<p>Abrindo o Cubicase para entrar automaticamente&hellip;</p>" +
+        '<a class="btn" href="' + deepLink + '">Abrir no Cubicase</a>' +
+        '<div id="fallback"><br><a class="btn-ghost" href="https://cubicase.net/download/">Ainda não tenho o Cubicase — baixar</a></div>'
+      );
+      window.location.href = deepLink;
+      setTimeout(function () {
+        const fb = document.getElementById("fallback");
+        if (fb) fb.style.opacity = "1";
+      }, 1500);
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
+    const slug = window.location.pathname.replace(/^\/+|\/+$/g, "").split("/")[0].toLowerCase();
+
+    if (!slug) {
+      renderError("Link de convite do Cubicase", "Cole aqui o link completo que alguém te mandou (play.cubicase.net/algumacoisa), não só o domínio.");
+    } else {
+      fetch(API_BASE + "/api/v1/servers/by-slug/" + encodeURIComponent(slug))
+        .then(function (res) {
+          if (!res.ok) throw new Error("not_found");
+          return res.json();
+        })
+        .then(function (envelope) {
+          const data = envelope && envelope.data;
+          if (!data || !data.shortCode) throw new Error("not_found");
+          renderInvite(data.name, data.shortCode);
+        })
+        .catch(function () {
+          renderError("Esse link não existe (mais)", "O convite pode ter expirado ou o código foi trocado. Peça um link novo pra quem te convidou.");
+        });
+    }
+  </script>
+</body>
+</html>
